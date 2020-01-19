@@ -1,4 +1,16 @@
-const puppeteer = require('puppeteer');
+let puppeteer = require('puppeteer');
+let nodemailer = require('nodemailer');
+let sgTransport = require('nodemailer-sendgrid-transport');
+
+let options = {
+  auth: {
+    api_user: 'xx',
+    api_key: 'xx'
+  }
+};
+
+let client = nodemailer.createTransport(sgTransport(options));
+
 (async () => {
   try {
     let launchOptions = { 
@@ -20,7 +32,8 @@ const puppeteer = require('puppeteer');
     await page.type(emailSel, 'xx');
     //TODO: remove hard-coded timeout
     await page.waitFor(5000)
-    await page.type(passwordSel, 'xx
+    await page.type(passwordSel, 'xx');
+
     await page.click(loginButton)
     //TODO: remove hard-coded timeout
     await page.waitFor(10000);
@@ -34,7 +47,7 @@ const puppeteer = require('puppeteer');
 
         let runFn = () => {
           let questionElements = document.querySelectorAll(questionSel);
-          console.log('eeee: ', questionElements.length)
+          console.log('number of questions: ', questionElements.length)
           for(let element of questionElements) {
             let text = element.querySelector('span span').innerText;
             let link = element.href; 
@@ -44,7 +57,7 @@ const puppeteer = require('puppeteer');
             }
           }
 
-          if(Object.keys(questions).length > 4) {
+          if(Object.keys(questions).length > 10) {
             clearInterval(id);
             resolve(questions);
           } else {
@@ -57,10 +70,33 @@ const puppeteer = require('puppeteer');
       });
     });
 
-    console.log('Questions found:', questions)
+    //console.log('Questions found:', questions)
     // put this in finally
     await browser.close();
+    let html = '<html>';
+    Object.keys(questions).forEach(key => {
+      let anchorElement = `<a style="display: block" href="${questions[key]}">`;
+      
+      if(questions[key].includes('unanswered')) {
+        anchorElement += `<b>Unanswered</b> - ${key}</a>`;
+      }
+      else {
+        anchorElement += `${key}</a>`;
+      }
+      html += anchorElement;
+    });
 
+    html += '</html>';
+
+    //console.log(html)
+    let email = {
+      from: 'sbmthakur@gmail.com',
+      to: 'sbmthakur@gmail.com',
+      subject: 'Questions from Quora',
+      html: html
+    };
+    client.sendMail(email);
+    
   } catch(err) {
     console.log('some err: ', err.message)
   }
